@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+o<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -222,7 +222,7 @@
         document.getElementById('scanForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const apiKey = apiKeyInput.value.trim() || localStorage.getItem('GEMINI_API_KEY');
+            const apiKey = 'AQ.Ab8RN6J826lb5Y42TVyE9eYV16zR9F1xEeevAwMvFYBK_gwXMQ';
 
             if (!apiKey) {
                 alert("Please enter your Gemini API Key in the box above before submitting.");
@@ -255,7 +255,7 @@
                 `;
 
                 // Endpoint updated to gemini-3.8-flash
-                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=AQ.Ab8RN6J826lb5Y42TVyE9eYV16zR9F1xEeevAwMvFYBK_gwXMQ`;
+                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={apiKey}`;
 
                 const response = await fetch(endpoint, {
                     method: 'POST',
