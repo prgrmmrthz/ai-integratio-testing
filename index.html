@@ -1,1 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RiceGuard - Detect Rice Disease</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .hidden-screen { display: none !important; }
+    </style>
+</head>
+<body class="bg-slate-100 flex justify-center items-center min-h-screen p-0 sm:p-4">
+
+    <!-- Mobile App Container -->
+    <div class="w-full max-w-md bg-white min-h-screen sm:min-h-[720px] sm:rounded-2xl shadow-xl flex flex-col justify-between p-6 relative">
+        
+        <!-- App Header -->
+        <header class="flex justify-between items-center py-2 border-b border-slate-100">
+            <div class="flex items-center space-x-2">
+                <span class="text-emerald-700 font-bold text-xl flex items-center gap-1">
+                    🌱 RiceGuard
+                </span>
+            </div>
+            <button onclick="toggleSettingsModal()" class="text-slate-600 hover:text-emerald-700 text-xl font-bold" title="Settings / API Key">
+                ⚙️
+            </button>
+        </header>
+
+        <!-- ========================================== -->
+        <!-- SCREEN 1: UPLOAD / CAMERA SCAN SCREEN      -->
+        <!-- ========================================== -->
+        <main id="uploadScreen" class="flex-1 flex flex-col items-center justify-center text-center my-auto py-4">
+            <h2 class="text-xl font-bold text-slate-800">Detect Rice Disease</h2>
+            <p class="text-xs text-slate-500 mt-1 mb-6 max-w-xs">
+                Upload or take a photo of your rice plant and let RiceGuard check for diseases.
+            </p>
+
+            <!-- API Key Input Banner -->
+            <div class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 mb-6 text-left">
+                <label for="apiKeyInput" class="block text-xs font-semibold text-slate-700 mb-1">
+                    🔑 Gemini API Key:
+                </label>
+                <div class="flex gap-2">
+                    <input type="password" id="apiKeyInput" placeholder="Paste AI Studio API Key" 
+                           class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+                    <button type="button" onclick="saveApiKey()" class="px-3 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg hover:bg-slate-900 transition">
+                        Save
+                    </button>
+                </div>
+                <p id="keyStatus" class="text-[10px] text-slate-400 mt-1">Saved locally in browser memory.</p>
+            </div>
+
+            <form id="scanForm" class="w-full space-y-4">
+                <!-- Native Camera Input (Mobile Camera) -->
+                <label class="flex items-center justify-center space-x-2 w-full py-3.5 px-4 border-2 border-emerald-600 text-emerald-700 font-semibold rounded-xl cursor-pointer hover:bg-emerald-50 transition">
+                    <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/></svg>
+                    <span>Take Photo</span>
+                    <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden">
+                </label>
+
+                <div class="flex items-center my-2">
+                    <div class="flex-1 border-t border-slate-200"></div>
+                    <span class="px-3 text-xs text-slate-400 font-medium">OR</span>
+                    <div class="flex-1 border-t border-slate-200"></div>
+                </div>
+
+                <!-- Gallery File Upload Input -->
+                <label class="flex items-center justify-center space-x-2 w-full py-3.5 px-4 border border-slate-300 text-slate-700 font-semibold rounded-xl cursor-pointer hover:bg-slate-50 transition">
+                    <svg class="w-5 h-5 fill-current text-slate-500" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5-7l-3 3.72L9 13l-3 4h12l-4-5z"/></svg>
+                    <span>Upload Image</span>
+                    <input type="file" id="fileInput" accept="image/*" class="hidden">
+                </label>
+
+                <!-- Selected Image Preview -->
+                <div id="previewContainer" class="hidden mt-4">
+                    <p class="text-xs text-slate-500 mb-2 font-medium">Selected Photo:</p>
+                    <img id="imagePreview" class="w-full h-44 object-cover rounded-xl shadow-sm border border-slate-200">
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="btnDetect" disabled class="w-full py-3.5 bg-emerald-800 text-white font-semibold rounded-xl opacity-50 cursor-not-allowed transition shadow-md">
+                    Detect Disease
+                </button>
+            </form>
+        </main>
+
+        <!-- ========================================== -->
+        <!-- SCREEN 2: LOADING / PROCESSING STATE       -->
+        <!-- ========================================== -->
+        <main id="loadingScreen" class="hidden-screen flex-1 flex flex-col items-center justify-center text-center my-auto py-12">
+            <div class="relative flex items-center justify-center mb-6">
+                <div class="w-20 h-20 border-4 border-emerald-100 border-t-emerald-700 rounded-full animate-spin"></div>
+                <span class="absolute text-2xl">🌱</span>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800">Analyzing your photo...</h3>
+            <p class="text-xs text-slate-500 mt-1">Powered by Gemini 3.8 Flash</p>
+        </main>
+
+        <!-- ========================================== -->
+        <!-- SCREEN 3: RESULTS DISPLAY                  -->
+        <!-- ========================================== -->
+        <main id="resultScreen" class="hidden-screen flex-1 flex flex-col my-2">
+            <!-- Status Badge -->
+            <div id="statusBadge" class="p-4 rounded-xl mb-4 flex items-start space-x-3">
+                <span id="badgeIcon" class="text-2xl mt-0.5"></span>
+                <div>
+                    <h3 id="diseaseTitle" class="font-bold text-base"></h3>
+                    <p id="scientificTitle" class="text-xs italic opacity-90 mt-0.5"></p>
+                </div>
+            </div>
+
+            <!-- Uploaded Image Thumbnail -->
+            <img id="resultImage" class="w-full h-40 object-cover rounded-xl mb-4 border border-slate-100 shadow-sm">
+
+            <!-- Dynamic Output Sections -->
+            <div class="space-y-4 text-left flex-1 overflow-y-auto max-h-56 pr-1">
+                <div id="symptomsSection">
+                    <h4 class="font-bold text-xs uppercase tracking-wider text-slate-500">Common Symptoms</h4>
+                    <ul id="symptomsList" class="list-disc list-inside text-xs text-slate-700 mt-1.5 space-y-1"></ul>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-xs uppercase tracking-wider text-slate-500">Recommendation</h4>
+                    <ul id="recommendationsList" class="list-disc list-inside text-xs text-slate-700 mt-1.5 space-y-1"></ul>
+                </div>
+            </div>
+
+            <!-- Scan Again Button -->
+            <button onclick="resetApp()" class="w-full py-3.5 mt-4 bg-emerald-800 text-white font-semibold rounded-xl shadow-md hover:bg-emerald-900 transition">
+                Scan Another Plant
+            </button>
+        </main>
+
+        <!-- Bottom Mockup Navigation -->
+        <footer class="flex justify-around items-center pt-3 border-t border-slate-100 text-slate-400 text-xs">
+            <button class="flex flex-col items-center text-emerald-700 font-semibold">
+                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                <span>Home</span>
+            </button>
+            <button class="flex flex-col items-center hover:text-slate-600">
+                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9z"/></svg>
+                <span>History</span>
+            </button>
+            <button class="flex flex-col items-center hover:text-slate-600">
+                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                <span>Profile</span>
+            </button>
+        </footer>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- JAVASCRIPT & GEMINI VISION LOGIC           -->
+    <!-- ========================================== -->
+    <script>
+        let selectedFile = null;
+
+        // DOM Elements
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const keyStatus = document.getElementById('keyStatus');
+        const cameraInput = document.getElementById('cameraInput');
+        const fileInput = document.getElementById('fileInput');
+        const imagePreview = document.getElementById('imagePreview');
+        const previewContainer = document.getElementById('previewContainer');
+        const btnDetect = document.getElementById('btnDetect');
+
+        // Load saved API Key on page startup
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedKey = localStorage.getItem('GEMINI_API_KEY');
+            if (savedKey) {
+                apiKeyInput.value = savedKey;
+                keyStatus.textContent = "✅ Key loaded from storage.";
+                keyStatus.className = "text-[10px] text-emerald-600 mt-1 font-medium";
+            }
+        });
+
+        // Save API Key into LocalStorage
+        function saveApiKey() {
+            const key = apiKeyInput.value.trim();
+            if (!key) {
+                alert("Please enter a valid API key.");
+                return;
+            }
+            localStorage.setItem('GEMINI_API_KEY', key);
+            keyStatus.textContent = "✅ Saved successfully!";
+            keyStatus.className = "text-[10px] text-emerald-600 mt-1 font-medium";
+        }
+
+        // Handle Image Selection
+        function handleFileSelect(file) {
+            if (!file) return;
+            selectedFile = file;
+
+            imagePreview.src = URL.createObjectURL(file);
+            previewContainer.classList.remove('hidden');
+
+            btnDetect.disabled = false;
+            btnDetect.classList.remove('opacity-50', 'cursor-not-allowed');
+            btnDetect.classList.add('hover:bg-emerald-900');
+        }
+
+        cameraInput.addEventListener('change', (e) => handleFileSelect(e.target.files[0]));
+        fileInput.addEventListener('change', (e) => handleFileSelect(e.target.files[0]));
+
+        // Helper: Convert File to Base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = (error) => reject(error);
+            });
+        }
+
+        // Form Submit & Gemini API Call
+        document.getElementById('scanForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const apiKey = apiKeyInput.value.trim() || localStorage.getItem('GEMINI_API_KEY');
+
+            if (!apiKey) {
+                alert("Please enter your Gemini API Key in the box above before submitting.");
+                apiKeyInput.focus();
+                return;
+            }
+
+            if (!selectedFile) return;
+
+            // Transition to Loading Screen
+            document.getElementById('uploadScreen').classList.add('hidden-screen');
+            document.getElementById('loadingScreen').classList.remove('hidden-screen');
+
+            try {
+                const base64Data = await fileToBase64(selectedFile);
+
+                const promptText = `
+                    You are an expert plant pathologist specialized in rice crops.
+                    Analyze this image of a rice leaf and determine its health condition.
+
+                    Respond strictly in valid JSON format using this exact schema:
+                    {
+                      "isHealthy": true or false,
+                      "diseaseName": "Disease Name or Healthy Plant",
+                      "scientificName": "Scientific name in parentheses or empty string",
+                      "symptoms": ["Symptom 1", "Symptom 2"],
+                      "recommendations": ["Recommendation 1", "Recommendation 2"]
+                    }
+                    Do not wrap output in markdown syntax. Return raw JSON text only.
+                `;
+
+                // Endpoint updated to gemini-3.8-flash
+                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: promptText },
+                                { inline_data: { mime_type: selectedFile.type || "image/jpeg", data: base64Data } }
+                            ]
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errBody = await response.text();
+                    throw new Error(`API Error (${response.status}): ${errBody}`);
+                }
+
+                const responseData = await response.json();
+                const rawText = responseData.candidates[0].content.parts[0].text;
+                const cleanedJsonText = rawText.replace(/```json|```/g, '').trim();
+                const result = JSON.parse(cleanedJsonText);
+
+                renderResults(result);
+
+            } catch (err) {
+                console.error("Analysis Error:", err);
+                alert("Failed to analyze image. Please check your API key and network connection.");
+                resetApp();
+            }
+        });
+
+        // Display Analysis Results
+        function renderResults(data) {
+            document.getElementById('loadingScreen').classList.add('hidden-screen');
+            document.getElementById('resultScreen').classList.remove('hidden-screen');
+
+            const badge = document.getElementById('statusBadge');
+            const icon = document.getElementById('badgeIcon');
+            const title = document.getElementById('diseaseTitle');
+            const sci = document.getElementById('scientificTitle');
+
+            document.getElementById('resultImage').src = URL.createObjectURL(selectedFile);
+
+            if (data.isHealthy) {
+                badge.className = "p-4 rounded-xl mb-4 flex items-start space-x-3 bg-emerald-50 text-emerald-900 border border-emerald-200";
+                icon.textContent = "✅";
+                title.textContent = "Healthy Plant";
+                sci.textContent = "No signs of disease detected in your rice plant.";
+                document.getElementById('symptomsSection').classList.add('hidden');
+            } else {
+                badge.className = "p-4 rounded-xl mb-4 flex items-start space-x-3 bg-rose-50 text-rose-900 border border-rose-200";
+                icon.textContent = "⚠️";
+                title.textContent = data.diseaseName || "Possible Disease Detected";
+                sci.textContent = data.scientificName || "";
+                document.getElementById('symptomsSection').classList.remove('hidden');
+
+                const symptomsList = document.getElementById('symptomsList');
+                symptomsList.innerHTML = (data.symptoms || [])
+                    .map(s => `<li>${s}</li>`)
+                    .join('');
+            }
+
+            const recsList = document.getElementById('recommendationsList');
+            recsList.innerHTML = (data.recommendations || [])
+                .map(r => `<li>${r}</li>`)
+                .join('');
+        }
+
+        // Reset back to Screen 1
+        function resetApp() {
+            selectedFile = null;
+            document.getElementById('scanForm').reset();
+            previewContainer.classList.add('hidden');
+            btnDetect.disabled = true;
+            btnDetect.classList.add('opacity-50', 'cursor-not-allowed');
+
+            document.getElementById('resultScreen').classList.add('hidden-screen');
+            document.getElementById('loadingScreen').classList.add('hidden-screen');
+            document.getElementById('uploadScreen').classList.remove('hidden-screen');
+        }
+    </script>
+</body>
+</html>
 
