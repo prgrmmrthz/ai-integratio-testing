@@ -3,11 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="RiceGuard - Detect rice crop diseases using AI-powered image analysis">
+    <meta name="theme-color" content="#059669">
     <title>RiceGuard - Detect Rice Disease</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .hidden-screen { display: none !important; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
     </style>
 </head>
 <body class="bg-slate-100 flex justify-center items-center min-h-screen p-0 sm:p-4">
@@ -22,7 +25,7 @@
                     🌱 RiceGuard
                 </span>
             </div>
-            <button onclick="toggleSettingsModal()" class="text-slate-600 hover:text-emerald-700 text-xl font-bold" title="Settings / API Key">
+            <button onclick="toggleSettingsModal()" class="text-slate-600 hover:text-emerald-700 text-xl font-bold transition" title="Settings / API Key">
                 ⚙️
             </button>
         </header>
@@ -39,7 +42,7 @@
             <form id="scanForm" class="w-full space-y-4">
                 <!-- Native Camera Input (Mobile Camera) -->
                 <label class="flex items-center justify-center space-x-2 w-full py-3.5 px-4 border-2 border-emerald-600 text-emerald-700 font-semibold rounded-xl cursor-pointer hover:bg-emerald-50 transition">
-                    <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0 10zm0 2.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/></svg>
+                    <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/></svg>
                     <span>Take Photo</span>
                     <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden">
                 </label>
@@ -52,7 +55,7 @@
 
                 <!-- Gallery File Upload Input -->
                 <label class="flex items-center justify-center space-x-2 w-full py-3.5 px-4 border border-slate-300 text-slate-700 font-semibold rounded-xl cursor-pointer hover:bg-slate-50 transition">
-                    <svg class="w-5 h-5 fill-current text-slate-500" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5-7l-3 3.9L8 12l-3 4h14l-5-8z"/></svg>
+                    <svg class="w-5 h-5 fill-current text-slate-500" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5-7l-3 3.72-2.25-2.73L9 13l3-3.77L19.54 17H5l3.5-4.5z"/></svg>
                     <span>Upload Image</span>
                     <input type="file" id="fileInput" accept="image/*" class="hidden">
                 </label>
@@ -60,11 +63,11 @@
                 <!-- Selected Image Preview -->
                 <div id="previewContainer" class="hidden mt-4">
                     <p class="text-xs text-slate-500 mb-2 font-medium">Selected Photo:</p>
-                    <img id="imagePreview" class="w-full h-44 object-cover rounded-xl shadow-sm border border-slate-200">
+                    <img id="imagePreview" class="w-full h-44 object-cover rounded-xl shadow-sm border border-slate-200" alt="Selected image preview">
                 </div>
 
                 <!-- Submit Button -->
-                <button type="submit" id="btnDetect" disabled class="w-full py-3.5 bg-emerald-800 text-white font-semibold rounded-xl opacity-50 cursor-not-allowed transition shadow-md">
+                <button type="submit" id="btnDetect" disabled class="w-full py-3.5 bg-emerald-800 text-white font-semibold rounded-xl opacity-50 cursor-not-allowed transition shadow-md hover:bg-emerald-900 disabled:hover:bg-emerald-800">
                     Detect Disease
                 </button>
             </form>
@@ -79,7 +82,7 @@
                 <span class="absolute text-2xl">🌱</span>
             </div>
             <h3 class="text-lg font-bold text-slate-800">Analyzing your photo...</h3>
-            <p class="text-xs text-slate-500 mt-1">Powered by Gemini 3.8 Flash</p>
+            <p class="text-xs text-slate-500 mt-1">Powered by Gemini Vision</p>
         </main>
 
         <!-- ========================================== -->
@@ -96,7 +99,7 @@
             </div>
 
             <!-- Uploaded Image Thumbnail -->
-            <img id="resultImage" class="w-full h-40 object-cover rounded-xl mb-4 border border-slate-100 shadow-sm">
+            <img id="resultImage" class="w-full h-40 object-cover rounded-xl mb-4 border border-slate-100 shadow-sm" alt="Analyzed rice leaf">
 
             <!-- Dynamic Output Sections -->
             <div class="space-y-4 text-left flex-1 overflow-y-auto max-h-56 pr-1">
@@ -119,15 +122,15 @@
 
         <!-- Bottom Mockup Navigation -->
         <footer class="flex justify-around items-center pt-3 border-t border-slate-100 text-slate-400 text-xs">
-            <button class="flex flex-col items-center text-emerald-700 font-semibold">
+            <button class="flex flex-col items-center text-emerald-700 font-semibold transition">
                 <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
                 <span>Home</span>
             </button>
-            <button class="flex flex-col items-center hover:text-slate-600">
-                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06L7.94 18.3A7.964 7.964 0 0 0 13 21c4.42 0 8-3.58 8-8s-3.58-8-8-8z"/></svg>
+            <button class="flex flex-col items-center hover:text-slate-600 transition">
+                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06L7.05 18.41C8.5 19.56 10.16 20 12 20c4.42 0 8-3.58 8-8s-3.58-8-8-8z"/></svg>
                 <span>History</span>
             </button>
-            <button class="flex flex-col items-center hover:text-slate-600">
+            <button class="flex flex-col items-center hover:text-slate-600 transition">
                 <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
                 <span>Profile</span>
             </button>
@@ -136,20 +139,87 @@
     </div>
 
     <!-- ========================================== -->
+    <!-- SETTINGS MODAL                            -->
+    <!-- ========================================== -->
+    <div id="settingsModal" class="hidden-screen fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-slate-800">Settings</h2>
+                <button onclick="toggleSettingsModal()" class="text-slate-400 hover:text-slate-600 text-xl">✕</button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-2">Gemini API Key</label>
+                    <input type="password" id="apiKeyInput" placeholder="Enter your Gemini API key" class="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600">
+                    <p class="text-xs text-slate-500 mt-2">
+                        Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-emerald-600 hover:underline">Google AI Studio</a>
+                    </p>
+                </div>
+
+                <div class="flex items-center space-x-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <span class="text-lg">ℹ️</span>
+                    <p class="text-xs text-blue-900">Your API key is stored only in your browser's local storage.</p>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button onclick="clearApiKey()" class="flex-1 py-2 px-3 bg-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-300 transition text-sm">
+                        Clear
+                    </button>
+                    <button onclick="saveApiKey()" class="flex-1 py-2 px-3 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition text-sm">
+                        Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
     <!-- JAVASCRIPT & GEMINI VISION LOGIC           -->
     <!-- ========================================== -->
     <script>
-        window.__ENV__ = window.__ENV || {};
+        // API Key Management
+        const API_KEY_STORAGE_KEY = 'riceguard_gemini_api_key';
 
         function getApiKey() {
-            const envKey =
-                window.__ENV.GEMINI_API_KEY ||
-                window.GEMINI_API_KEY ||
-                (typeof process !== 'undefined' && process.env ? process.env.GEMINI_API_KEY : '') ||
-                '';
-
-            return envKey.trim();
+            return localStorage.getItem(API_KEY_STORAGE_KEY) || '';
         }
+
+        function saveApiKeyHandler() {
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            if (apiKey) {
+                localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
+                alert('API key saved successfully!');
+                toggleSettingsModal();
+            } else {
+                alert('Please enter a valid API key.');
+            }
+        }
+
+        function clearApiKeyHandler() {
+            if (confirm('Are you sure you want to clear the API key?')) {
+                localStorage.removeItem(API_KEY_STORAGE_KEY);
+                document.getElementById('apiKeyInput').value = '';
+                alert('API key cleared.');
+            }
+        }
+
+        function toggleSettingsModal() {
+            const modal = document.getElementById('settingsModal');
+            const isHidden = modal.classList.contains('hidden-screen');
+            
+            if (isHidden) {
+                document.getElementById('apiKeyInput').value = getApiKey();
+                modal.classList.remove('hidden-screen');
+            } else {
+                modal.classList.add('hidden-screen');
+            }
+        }
+
+        // Assign to window for inline onclick
+        window.saveApiKey = saveApiKeyHandler;
+        window.clearApiKey = clearApiKeyHandler;
+        window.toggleSettingsModal = toggleSettingsModal;
     </script>
 
     <script>
@@ -165,8 +235,14 @@
         // Handle Image Selection
         function handleFileSelect(file) {
             if (!file) return;
-            selectedFile = file;
+            
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                alert('Please select a valid image file.');
+                return;
+            }
 
+            selectedFile = file;
             imagePreview.src = URL.createObjectURL(file);
             previewContainer.classList.remove('hidden');
 
@@ -195,7 +271,8 @@
             const apiKey = getApiKey();
 
             if (!apiKey) {
-                alert('Gemini API key is not configured. Set GEMINI_API_KEY in your .env and expose it to the page as window.__ENV.GEMINI_API_KEY before loading this app.');
+                alert('Please configure your Gemini API key in Settings first.');
+                toggleSettingsModal();
                 return;
             }
 
@@ -223,8 +300,8 @@
                     Do not wrap output in markdown syntax. Return raw JSON text only.
                 `;
 
-                // Endpoint updated to gemini-3.8-flash
-                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
+                // Using gemini-1.5-flash for better compatibility
+                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
                 const response = await fetch(endpoint, {
                     method: 'POST',
@@ -245,6 +322,11 @@
                 }
 
                 const responseData = await response.json();
+                
+                if (!responseData.candidates || !responseData.candidates[0]) {
+                    throw new Error('Invalid response from API');
+                }
+
                 const rawText = responseData.candidates[0].content.parts[0].text;
                 const cleanedJsonText = rawText.replace(/```json|```/g, '').trim();
                 const result = JSON.parse(cleanedJsonText);
@@ -253,7 +335,7 @@
 
             } catch (err) {
                 console.error('Analysis Error:', err);
-                alert('Failed to analyze image. Please check your API key and network connection.');
+                alert(`Failed to analyze image: ${err.message}\n\nPlease check your API key and network connection.`);
                 resetApp();
             }
         });
@@ -302,11 +384,15 @@
             previewContainer.classList.add('hidden');
             btnDetect.disabled = true;
             btnDetect.classList.add('opacity-50', 'cursor-not-allowed');
+            btnDetect.classList.remove('hover:bg-emerald-900');
 
             document.getElementById('resultScreen').classList.add('hidden-screen');
             document.getElementById('loadingScreen').classList.add('hidden-screen');
             document.getElementById('uploadScreen').classList.remove('hidden-screen');
         }
+
+        // Assign to window for inline onclick
+        window.resetApp = resetApp;
     </script>
 </body>
 </html>
