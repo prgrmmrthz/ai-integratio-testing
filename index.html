@@ -1,4 +1,4 @@
-o<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -222,7 +222,7 @@ o<!DOCTYPE html>
         document.getElementById('scanForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const apiKey = 'AQ.Ab8RN6J826lb5Y42TVyE9eYV16zR9F1xEeevAwMvFYBK_gwXMQ';
+            const apiKey = apiKeyInput.value.trim() || localStorage.getItem('GEMINI_API_KEY');
 
             if (!apiKey) {
                 alert("Please enter your Gemini API Key in the box above before submitting.");
