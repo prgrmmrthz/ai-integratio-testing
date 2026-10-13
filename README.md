@@ -1,23 +1,36 @@
-# ai-integratio-testing
+# RiceGuard
 
-## Configure your Gemini API key
+RiceGuard is a React, TypeScript, and Redux Toolkit app for checking rice plant
+photos with the Gemini Vision API.
 
-1. Open `.env`.
-2. Replace the placeholder value:
+## Run locally
 
-   ```env
-   GEMINI_API_KEY=your_actual_gemini_api_key
-   ```
-
-3. Install dependencies and start the local server:
+1. Install dependencies:
 
    ```bash
    npm install
+   ```
+
+2. Start the development server:
+
+   ```bash
    npm start
    ```
 
-4. Open http://localhost:3000.
+3. Open the URL printed by Vite (usually http://localhost:5173).
+4. Open Settings in the app and enter your Gemini API key. The key is stored in
+   your browser's local storage.
 
-The server loads `.env` with `dotenv` and injects `GEMINI_API_KEY` into the page as `window.__ENV__`, which the existing frontend uses for the Gemini request.
+Create a key in [Google AI Studio](https://aistudio.google.com/app/apikey).
+Because the app calls Gemini directly from the browser, the key is visible to
+the browser and should be restricted appropriately. Do not commit real API keys.
 
-**Security note:** This browser-only app sends the key to the client, so the key can be viewed by anyone who can access the app. Restrict the key in Google AI Studio, and never replace the placeholder in `.env` with a real key before committing or sharing the repository.
+If Gemini returns a temporary 503 overload error, RiceGuard retries the request
+automatically. If it still fails, wait a moment and select **Try Again**.
+
+## Build
+
+```bash
+npm run build
+npm run preview
+```
