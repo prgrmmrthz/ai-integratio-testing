@@ -28,6 +28,10 @@ the browser and should be restricted appropriately. Do not commit real API keys.
 If Gemini returns a temporary 503 overload error, RiceGuard retries the request
 automatically. If it still fails, wait a moment and select **Try Again**.
 
+Completed scans are saved in the **History** tab, where you can review or delete
+them. The **Profile** tab lets you save your name and location. Scan history and
+profile details are stored in this browser using IndexedDB.
+
 ## Build
 
 ```bash

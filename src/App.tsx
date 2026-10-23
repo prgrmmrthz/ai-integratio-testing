@@ -1,8 +1,15 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useAppDispatch, useAppSelector } from './app/hooks';
 import type { ScanImage } from './features/scan/scanModel';
 import { scanImageSet, scanReset } from './features/scan/scanSlice';
 import { analyzeImage } from './features/scan/scanThunk';
+import {
+  clearHistoryError,
+  deleteHistoryItem,
+  loadHistory,
+  saveHistoryItem,
+} from './features/history/historySlice';
+import { clearProfileError, loadProfile, updateProfile } from './features/profile/profileSlice';
 
 const API_KEY_STORAGE_KEY = 'riceguard_gemini_api_key';
 
@@ -34,10 +41,29 @@ function readImage(file: File): Promise<ScanImage> {
 export default function App() {
   const dispatch = useAppDispatch();
   const { image, result, status, error } = useAppSelector((state) => state.scanReducer);
+  const history = useAppSelector((state) => state.history);
+  const profile = useAppSelector((state) => state.profile);
+  const [page, setPage] = useState<'home' | 'history' | 'profile'>('home');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [apiKey, setApiKey] = useState(() => localStorage.getItem(API_KEY_STORAGE_KEY) ?? '');
   const [keyError, setKeyError] = useState('');
   const [selectionError, setSelectionError] = useState('');
+  const [profileName, setProfileName] = useState('');
+  const [profileLocation, setProfileLocation] = useState('');
+  const [profileFormError, setProfileFormError] = useState('');
+  const [profileMessage, setProfileMessage] = useState('');
+
+  useEffect(() => {
+    dispatch(loadHistory());
+    dispatch(loadProfile());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (profile.profile) {
+      setProfileName(profile.profile.name);
+      setProfileLocation(profile.profile.location);
+    }
+  }, [profile.profile]);
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -65,7 +91,28 @@ export default function App() {
       setKeyError('Enter your Gemini API key to analyze an image.');
       return;
     }
-    dispatch(analyzeImage({ image, apiKey: apiKey.trim() }));
+    dispatch(clearHistoryError());
+    void dispatch(analyzeImage({ image, apiKey: apiKey.trim() })).unwrap().then(
+      (scanResult) => {
+        void dispatch(saveHistoryItem({ imageName: image.name, result: scanResult }));
+      },
+      () => undefined,
+    );
+  };
+
+  const handleProfileSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!profileName.trim()) {
+      setProfileFormError('Please enter your name.');
+      return;
+    }
+    setProfileFormError('');
+    setProfileMessage('');
+    dispatch(clearProfileError());
+    void dispatch(updateProfile({ name: profileName, location: profileLocation })).unwrap().then(
+      () => setProfileMessage('Profile saved on this device.'),
+      () => setProfileMessage(''),
+    );
   };
 
   const saveApiKey = (event: FormEvent<HTMLFormElement>) => {
@@ -114,7 +161,147 @@ export default function App() {
           </button>
         </header>
 
-        {status === 'loading' ? (
+        {page === 'history' ? (
+          <main className="my-2 flex flex-1 flex-col overflow-hidden">
+            <div className="mb-4">
+              <h1 className="text-xl font-bold text-slate-800">Scan History</h1>
+              <p className="mt-1 text-xs text-slate-500">Your saved rice plant analyses</p>
+            </div>
+            {history.error && (
+              <p className="mb-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800" role="alert">
+                {history.error}
+              </p>
+            )}
+            {history.status === 'loading' ? (
+              <p aria-live="polite" className="py-8 text-center text-sm text-slate-500">
+                Loading your scans...
+              </p>
+            ) : history.items.length === 0 ? (
+              <div className="flex flex-1 flex-col items-center justify-center text-center">
+                <span aria-hidden="true" className="text-4xl">🌾</span>
+                <h2 className="mt-3 font-semibold text-slate-700">No scans yet</h2>
+                <p className="mt-1 text-sm text-slate-500">Completed analyses will appear here.</p>
+                <button
+                  className="mt-5 rounded-xl bg-emerald-800 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-900"
+                  onClick={() => setPage('home')}
+                  type="button"
+                >
+                  Start a Scan
+                </button>
+              </div>
+            ) : (
+              <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+                {history.items.map((item) => (
+                  <article className="rounded-xl border border-slate-200 p-4" key={item.id}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-800">{item.imageName}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {new Date(item.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          item.result.isHealthy
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-rose-100 text-rose-800'
+                        }`}
+                      >
+                        {item.result.isHealthy ? 'Healthy' : item.result.diseaseName || 'Disease detected'}
+                      </span>
+                    </div>
+                    {!item.result.isHealthy && item.result.scientificName && (
+                      <p className="mt-2 text-xs italic text-slate-500">{item.result.scientificName}</p>
+                    )}
+                    {item.result.symptoms.length > 0 && (
+                      <p className="mt-3 text-xs text-slate-600">
+                        <span className="font-semibold">Symptoms: </span>
+                        {item.result.symptoms.join(', ')}
+                      </p>
+                    )}
+                    {item.result.recommendations.length > 0 && (
+                      <p className="mt-2 text-xs text-slate-600">
+                        <span className="font-semibold">Recommendations: </span>
+                        {item.result.recommendations.join(' ')}
+                      </p>
+                    )}
+                    <button
+                      aria-label={`Delete scan ${item.imageName}`}
+                      className="mt-3 text-xs font-semibold text-rose-700 hover:text-rose-900"
+                      onClick={() => dispatch(deleteHistoryItem(item.id))}
+                      type="button"
+                    >
+                      Delete
+                    </button>
+                  </article>
+                ))}
+              </div>
+            )}
+          </main>
+        ) : page === 'profile' ? (
+          <main className="my-auto flex flex-1 flex-col py-6">
+            <div className="mb-6 text-center">
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-4xl">
+                👩‍🌾
+              </div>
+              <h1 className="mt-3 text-xl font-bold text-slate-800">Your Profile</h1>
+              <p className="mt-1 text-sm text-slate-500">Personalize your RiceGuard experience</p>
+            </div>
+            {profile.status === 'loading' ? (
+              <p aria-live="polite" className="py-5 text-center text-sm text-slate-500">
+                Loading your profile...
+              </p>
+            ) : (
+              <form className="space-y-4" onSubmit={handleProfileSubmit}>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700" htmlFor="profile-name">
+                    Name
+                  </label>
+                  <input
+                    autoComplete="name"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                    id="profile-name"
+                    onChange={(event) => {
+                      setProfileName(event.target.value);
+                      setProfileMessage('');
+                    }}
+                    placeholder="Your name"
+                    value={profileName}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700" htmlFor="profile-location">
+                    Location
+                  </label>
+                  <input
+                    autoComplete="address-level2"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                    id="profile-location"
+                    onChange={(event) => {
+                      setProfileLocation(event.target.value);
+                      setProfileMessage('');
+                    }}
+                    placeholder="Your farm or area"
+                    value={profileLocation}
+                  />
+                </div>
+                {(profile.error || profileFormError) && (
+                  <p className="text-sm text-rose-700" role="alert">
+                    {profileFormError || profile.error}
+                  </p>
+                )}
+                {profileMessage && <p className="text-sm text-emerald-700" role="status">{profileMessage}</p>}
+                <button
+                  className="w-full rounded-xl bg-emerald-800 py-3 font-semibold text-white transition hover:bg-emerald-900 disabled:cursor-wait disabled:opacity-60"
+                  disabled={profile.saving}
+                  type="submit"
+                >
+                  {profile.saving ? 'Saving...' : 'Save Profile'}
+                </button>
+              </form>
+            )}
+          </main>
+        ) : status === 'loading' ? (
           <main
             aria-live="polite"
             className="my-auto flex flex-1 flex-col items-center justify-center py-12 text-center"
@@ -272,15 +459,30 @@ export default function App() {
         )}
 
         <footer className="flex items-center justify-around border-t border-slate-100 pt-3 text-xs text-slate-400">
-          <button className="flex flex-col items-center font-semibold text-emerald-700" type="button">
+          <button
+            aria-current={page === 'home' ? 'page' : undefined}
+            className={`flex flex-col items-center transition hover:text-emerald-700 ${page === 'home' ? 'font-semibold text-emerald-700' : ''}`}
+            onClick={() => setPage('home')}
+            type="button"
+          >
             <span className="text-lg">⌂</span>
             <span>Home</span>
           </button>
-          <button className="flex flex-col items-center transition hover:text-slate-600" type="button">
+          <button
+            aria-current={page === 'history' ? 'page' : undefined}
+            className={`flex flex-col items-center transition hover:text-emerald-700 ${page === 'history' ? 'font-semibold text-emerald-700' : ''}`}
+            onClick={() => setPage('history')}
+            type="button"
+          >
             <span className="text-lg">↻</span>
             <span>History</span>
           </button>
-          <button className="flex flex-col items-center transition hover:text-slate-600" type="button">
+          <button
+            aria-current={page === 'profile' ? 'page' : undefined}
+            className={`flex flex-col items-center transition hover:text-emerald-700 ${page === 'profile' ? 'font-semibold text-emerald-700' : ''}`}
+            onClick={() => setPage('profile')}
+            type="button"
+          >
             <span className="text-lg">♙</span>
             <span>Profile</span>
           </button>
